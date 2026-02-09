@@ -30,14 +30,15 @@ export default function CartScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const {
-    cartItems,
-    cartTotal,
-    updateCartQuantity,
-    removeFromCart,
-    clearCart,
-    placeOrder,
-  } = useStore();
+  
+  // Safely get store methods with fallbacks
+  const store = useStore();
+  const cartItems = store?.cartItems ?? [];
+  const cartTotal = store?.cartTotal ?? 0;
+  const updateCartQuantity = store?.updateCartQuantity ?? (() => {});
+  const removeFromCart = store?.removeFromCart ?? (() => {});
+  const clearCart = store?.clearCart ?? (() => {});
+  const placeOrder = store?.placeOrder ?? (() => ({ id: '' }));
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodType>('cash_on_delivery');
@@ -49,34 +50,57 @@ export default function CartScreen() {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
 
-  const formatPrice = (price: number) => price.toLocaleString('fr-DZ') + ' DA';
+  const formatPrice = (price: number) => {
+    if (typeof price !== 'number' || isNaN(price)) return '0 DA';
+    return price.toLocaleString('fr-DZ') + ' DA';
+  };
 
   const deliveryFee = 400;
   const total = cartTotal + (cartItems.length > 0 ? deliveryFee : 0);
 
   const handleRemove = (productId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    removeFromCart(productId);
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      removeFromCart(productId);
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+    }
   };
 
   const handlePlaceOrder = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const order = placeOrder(selectedPayment);
-    setOrderPlaced(true);
-    setTimeout(() => {
-      setShowCheckout(false);
-      setOrderPlaced(false);
-      router.push(`/order/${order.id}`);
-    }, 1500);
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const order = placeOrder(selectedPayment);
+      if (order?.id) {
+        setOrderPlaced(true);
+        setTimeout(() => {
+          setShowCheckout(false);
+          setOrderPlaced(false);
+          router.push(`/order/${order.id}`);
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error placing order:', error);
+      Alert.alert('Erreur', 'Impossible de passer la commande. Veuillez réessayer.');
+    }
   };
+
+  // Safety check for theme
+  if (!theme) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ fontSize: 16, color: '#64748b' }}>Chargement...</Text>
+      </View>
+    );
+  }
 
   if (cartItems.length === 0 && !orderPlaced) {
     return (
       <Animated.View
         style={{
           flex: 1,
-          backgroundColor: theme.background,
+          backgroundColor: theme.background ?? '#ffffff',
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 40,
@@ -88,18 +112,18 @@ export default function CartScreen() {
             width: 100,
             height: 100,
             borderRadius: 50,
-            backgroundColor: theme.primaryBg,
+            backgroundColor: theme.primaryBg ?? '#fff7ed',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: 24,
           }}
         >
-          <Ionicons name="cart-outline" size={48} color={theme.primary} />
+          <Ionicons name="cart-outline" size={48} color={theme.primary ?? '#f97316'} />
         </View>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: theme.text, marginBottom: 8 }}>
+        <Text style={{ fontSize: 22, fontWeight: '700', color: theme.text ?? '#0f172a', marginBottom: 8 }}>
           Votre panier est vide
         </Text>
-        <Text style={{ fontSize: 15, color: theme.textSecondary, textAlign: 'center', lineHeight: 22 }}>
+        <Text style={{ fontSize: 15, color: theme.textSecondary ?? '#64748b', textAlign: 'center', lineHeight: 22 }}>
           Découvrez nos produits et ajoutez-les à votre panier
         </Text>
         <View style={{ marginTop: 24, width: '100%' }}>
@@ -115,7 +139,7 @@ export default function CartScreen() {
 
   if (showCheckout) {
     return (
-      <Animated.View style={{ flex: 1, backgroundColor: theme.background, opacity: fadeAnim }}>
+      <Animated.View style={{ flex: 1, backgroundColor: theme.background ?? '#ffffff', opacity: fadeAnim }}>
         <View
           style={{
             paddingTop: insets.top + 10,
@@ -127,9 +151,9 @@ export default function CartScreen() {
           }}
         >
           <Pressable onPress={() => setShowCheckout(false)}>
-            <Ionicons name="arrow-back" size={24} color={theme.text} />
+            <Ionicons name="arrow-back" size={24} color={theme.text ?? '#0f172a'} />
           </Pressable>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: theme.text }}>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: theme.text ?? '#0f172a' }}>
             Paiement
           </Text>
         </View>
@@ -143,27 +167,27 @@ export default function CartScreen() {
                   width: 42,
                   height: 42,
                   borderRadius: 12,
-                  backgroundColor: theme.primaryBg,
+                  backgroundColor: theme.primaryBg ?? '#fff7ed',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name="location" size={22} color={theme.primary} />
+                <Ionicons name="location" size={22} color={theme.primary ?? '#f97316'} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text ?? '#0f172a' }}>
                   Adresse de livraison
                 </Text>
-                <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>
+                <Text style={{ fontSize: 13, color: theme.textSecondary ?? '#64748b', marginTop: 2 }}>
                   12 Rue Didouche Mourad, Alger Centre
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.icon} />
+              <Ionicons name="chevron-forward" size={18} color={theme.icon ?? '#64748b'} />
             </View>
           </Card>
 
           {/* Payment Method */}
-          <Text style={{ fontSize: 17, fontWeight: '700', color: theme.text, marginBottom: 14 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: theme.text ?? '#0f172a', marginBottom: 14 }}>
             Méthode de paiement
           </Text>
 
@@ -178,10 +202,10 @@ export default function CartScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 padding: 16,
-                backgroundColor: selectedPayment === method.id ? theme.primaryBg : theme.card,
+                backgroundColor: selectedPayment === method.id ? (theme.primaryBg ?? '#fff7ed') : (theme.card ?? '#ffffff'),
                 borderRadius: 14,
                 borderWidth: 2,
-                borderColor: selectedPayment === method.id ? theme.primary : theme.border,
+                borderColor: selectedPayment === method.id ? (theme.primary ?? '#f97316') : (theme.border ?? '#e2e8f0'),
                 marginBottom: 10,
                 gap: 14,
               }}
@@ -192,8 +216,8 @@ export default function CartScreen() {
                   height: 42,
                   borderRadius: 12,
                   backgroundColor: selectedPayment === method.id
-                    ? theme.primary
-                    : theme.backgroundTertiary,
+                    ? (theme.primary ?? '#f97316')
+                    : (theme.backgroundTertiary ?? '#f1f5f9'),
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -201,14 +225,14 @@ export default function CartScreen() {
                 <Ionicons
                   name={method.icon}
                   size={22}
-                  color={selectedPayment === method.id ? '#fff' : theme.icon}
+                  color={selectedPayment === method.id ? '#fff' : (theme.icon ?? '#64748b')}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: theme.text }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: theme.text ?? '#0f172a' }}>
                   {method.label}
                 </Text>
-                <Text style={{ fontSize: 12, color: theme.textSecondary }}>{method.desc}</Text>
+                <Text style={{ fontSize: 12, color: theme.textSecondary ?? '#64748b' }}>{method.desc}</Text>
               </View>
               <View
                 style={{
@@ -216,7 +240,7 @@ export default function CartScreen() {
                   height: 22,
                   borderRadius: 11,
                   borderWidth: 2,
-                  borderColor: selectedPayment === method.id ? theme.primary : theme.border,
+                  borderColor: selectedPayment === method.id ? (theme.primary ?? '#f97316') : (theme.border ?? '#e2e8f0'),
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -227,7 +251,7 @@ export default function CartScreen() {
                       width: 12,
                       height: 12,
                       borderRadius: 6,
-                      backgroundColor: theme.primary,
+                      backgroundColor: theme.primary ?? '#f97316',
                     }}
                   />
                 )}
@@ -237,35 +261,35 @@ export default function CartScreen() {
 
           {/* Order Summary */}
           <View style={{ marginTop: 20 }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: theme.text, marginBottom: 14 }}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: theme.text ?? '#0f172a', marginBottom: 14 }}>
               Résumé de la commande
             </Text>
             <Card>
               <View style={{ gap: 10 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                    Sous-total ({cartItems.reduce((s, i) => s + i.quantity, 0)} articles)
+                  <Text style={{ fontSize: 14, color: theme.textSecondary ?? '#64748b' }}>
+                    Sous-total ({cartItems.reduce((s, i) => s + (i?.quantity ?? 0), 0)} articles)
                   </Text>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: theme.text }}>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: theme.text ?? '#0f172a' }}>
                     {formatPrice(cartTotal)}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>Livraison</Text>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: theme.text }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary ?? '#64748b' }}>Livraison</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: theme.text ?? '#0f172a' }}>
                     {formatPrice(deliveryFee)}
                   </Text>
                 </View>
                 <View
                   style={{
                     height: 1,
-                    backgroundColor: theme.border,
+                    backgroundColor: theme.border ?? '#e2e8f0',
                     marginVertical: 4,
                   }}
                 />
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text }}>Total</Text>
-                  <Text style={{ fontSize: 18, fontWeight: '800', color: theme.primary }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text ?? '#0f172a' }}>Total</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: theme.primary ?? '#f97316' }}>
                     {formatPrice(total)}
                   </Text>
                 </View>
@@ -283,8 +307,8 @@ export default function CartScreen() {
               marginTop: 20,
             }}
           >
-            <Ionicons name="shield-checkmark" size={16} color={theme.success} />
-            <Text style={{ fontSize: 12, color: theme.textTertiary }}>
+            <Ionicons name="shield-checkmark" size={16} color={theme.success ?? '#10b981'} />
+            <Text style={{ fontSize: 12, color: theme.textTertiary ?? '#94a3b8' }}>
               Paiement sécurisé · Protection acheteur
             </Text>
           </View>
@@ -300,15 +324,15 @@ export default function CartScreen() {
             paddingHorizontal: 20,
             paddingTop: 16,
             paddingBottom: insets.bottom + 16,
-            backgroundColor: theme.card,
+            backgroundColor: theme.card ?? '#ffffff',
             borderTopWidth: 0.5,
-            borderTopColor: theme.borderLight,
+            borderTopColor: theme.borderLight ?? '#f1f5f9',
           }}
         >
           {orderPlaced ? (
             <View style={{ alignItems: 'center', paddingVertical: 12, gap: 8 }}>
-              <Ionicons name="checkmark-circle" size={32} color={theme.success} />
-              <Text style={{ fontSize: 16, fontWeight: '700', color: theme.success }}>
+              <Ionicons name="checkmark-circle" size={32} color={theme.success ?? '#10b981'} />
+              <Text style={{ fontSize: 16, fontWeight: '700', color: theme.success ?? '#10b981' }}>
                 Commande confirmée !
               </Text>
             </View>
@@ -325,7 +349,7 @@ export default function CartScreen() {
   }
 
   return (
-    <Animated.View style={{ flex: 1, backgroundColor: theme.background, opacity: fadeAnim }}>
+    <Animated.View style={{ flex: 1, backgroundColor: theme.background ?? '#ffffff', opacity: fadeAnim }}>
       {/* Header */}
       <View
         style={{
@@ -337,7 +361,7 @@ export default function CartScreen() {
           justifyContent: 'space-between',
         }}
       >
-        <Text style={{ fontSize: 24, fontWeight: '800', color: theme.text }}>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: theme.text ?? '#0f172a' }}>
           Panier
         </Text>
         <Pressable
@@ -355,7 +379,7 @@ export default function CartScreen() {
             ]);
           }}
         >
-          <Text style={{ fontSize: 14, color: theme.error, fontWeight: '500' }}>Tout supprimer</Text>
+          <Text style={{ fontSize: 14, color: theme.error ?? '#ef4444', fontWeight: '500' }}>Tout supprimer</Text>
         </Pressable>
       </View>
 
@@ -363,88 +387,99 @@ export default function CartScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 20, paddingBottom: 180 }}
       >
-        {cartItems.map((item) => (
-          <View
-            key={item.productId}
-            style={{
-              flexDirection: 'row',
-              backgroundColor: theme.card,
-              borderRadius: 16,
-              padding: 12,
-              marginBottom: 12,
-              shadowColor: theme.shadow,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.04,
-              shadowRadius: 8,
-              elevation: 2,
-            }}
-          >
-            <Image
-              source={{ uri: item.product.images[0] }}
-              style={{ width: 90, height: 90, borderRadius: 12 }}
-              contentFit="cover"
-            />
-            <View style={{ flex: 1, marginLeft: 14, justifyContent: 'space-between' }}>
-              <View>
-                <Text
-                  style={{ fontSize: 14, fontWeight: '600', color: theme.text }}
-                  numberOfLines={2}
-                >
-                  {item.product.title}
-                </Text>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.primary, marginTop: 4 }}>
-                  {formatPrice(item.price)}
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                {/* Quantity controls */}
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.backgroundSecondary,
-                    borderRadius: 10,
-                    gap: 0,
-                  }}
-                >
-                  <Pressable
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                      updateCartQuantity(item.productId, item.quantity - 1);
-                    }}
-                    style={{ padding: 8 }}
-                  >
-                    <Ionicons name="remove" size={18} color={theme.text} />
-                  </Pressable>
+        {cartItems.map((item) => {
+          // Safety checks for item properties
+          if (!item?.product) return null;
+          
+          const productImage = item.product.images?.[0] ?? '';
+          const productTitle = item.product.title ?? 'Produit';
+          const itemPrice = item.price ?? 0;
+          const itemQuantity = item.quantity ?? 1;
+          const productId = item.productId ?? '';
+
+          return (
+            <View
+              key={productId}
+              style={{
+                flexDirection: 'row',
+                backgroundColor: theme.card ?? '#ffffff',
+                borderRadius: 16,
+                padding: 12,
+                marginBottom: 12,
+                shadowColor: theme.shadow ?? '#000000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+                elevation: 2,
+              }}
+            >
+              <Image
+                source={{ uri: productImage }}
+                style={{ width: 90, height: 90, borderRadius: 12 }}
+                contentFit="cover"
+              />
+              <View style={{ flex: 1, marginLeft: 14, justifyContent: 'space-between' }}>
+                <View>
                   <Text
-                    style={{
-                      fontSize: 15,
-                      fontWeight: '700',
-                      color: theme.text,
-                      minWidth: 28,
-                      textAlign: 'center',
-                    }}
+                    style={{ fontSize: 14, fontWeight: '600', color: theme.text ?? '#0f172a' }}
+                    numberOfLines={2}
                   >
-                    {item.quantity}
+                    {productTitle}
                   </Text>
-                  <Pressable
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      updateCartQuantity(item.productId, item.quantity + 1);
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.primary ?? '#f97316', marginTop: 4 }}>
+                    {formatPrice(itemPrice)}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {/* Quantity controls */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: theme.backgroundSecondary ?? '#f8fafc',
+                      borderRadius: 10,
+                      gap: 0,
                     }}
-                    style={{ padding: 8 }}
                   >
-                    <Ionicons name="add" size={18} color={theme.primary} />
+                    <Pressable
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        updateCartQuantity(productId, itemQuantity - 1);
+                      }}
+                      style={{ padding: 8 }}
+                    >
+                      <Ionicons name="remove" size={18} color={theme.text ?? '#0f172a'} />
+                    </Pressable>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: '700',
+                        color: theme.text ?? '#0f172a',
+                        minWidth: 28,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {itemQuantity}
+                    </Text>
+                    <Pressable
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        updateCartQuantity(productId, itemQuantity + 1);
+                      }}
+                      style={{ padding: 8 }}
+                    >
+                      <Ionicons name="add" size={18} color={theme.primary ?? '#f97316'} />
+                    </Pressable>
+                  </View>
+                  <Pressable onPress={() => handleRemove(productId)} style={{ padding: 6 }}>
+                    <Ionicons name="trash-outline" size={18} color={theme.error ?? '#ef4444'} />
                   </Pressable>
                 </View>
-                <Pressable onPress={() => handleRemove(item.productId)} style={{ padding: 6 }}>
-                  <Ionicons name="trash-outline" size={18} color={theme.error} />
-                </Pressable>
               </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {/* Bottom Bar */}
@@ -457,10 +492,10 @@ export default function CartScreen() {
           paddingHorizontal: 20,
           paddingTop: 16,
           paddingBottom: insets.bottom + 16,
-          backgroundColor: theme.card,
+          backgroundColor: theme.card ?? '#ffffff',
           borderTopWidth: 0.5,
-          borderTopColor: theme.borderLight,
-          shadowColor: theme.shadow,
+          borderTopColor: theme.borderLight ?? '#f1f5f9',
+          shadowColor: theme.shadow ?? '#000000',
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.08,
           shadowRadius: 12,
@@ -468,10 +503,10 @@ export default function CartScreen() {
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
-          <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-            Total ({cartItems.reduce((s, i) => s + i.quantity, 0)} articles)
+          <Text style={{ fontSize: 14, color: theme.textSecondary ?? '#64748b' }}>
+            Total ({cartItems.reduce((s, i) => s + (i?.quantity ?? 0), 0)} articles)
           </Text>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: theme.text }}>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: theme.text ?? '#0f172a' }}>
             {formatPrice(total)}
           </Text>
         </View>
