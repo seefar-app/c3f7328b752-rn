@@ -404,76 +404,115 @@ export default function CartScreen() {
                 flexDirection: 'row',
                 backgroundColor: theme.card ?? '#ffffff',
                 borderRadius: 16,
-                padding: 12,
-                marginBottom: 12,
+                padding: 14,
+                marginBottom: 14,
                 shadowColor: theme.shadow ?? '#000000',
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.04,
+                shadowOpacity: 0.06,
                 shadowRadius: 8,
-                elevation: 2,
+                elevation: 3,
+                borderWidth: 1,
+                borderColor: theme.border ?? '#e2e8f0',
               }}
             >
+              {/* Product Image */}
               <Image
                 source={{ uri: productImage }}
-                style={{ width: 90, height: 90, borderRadius: 12 }}
+                style={{ 
+                  width: 100, 
+                  height: 100, 
+                  borderRadius: 12,
+                  backgroundColor: theme.backgroundTertiary ?? '#f1f5f9',
+                }}
                 contentFit="cover"
+                transition={200}
               />
-              <View style={{ flex: 1, marginLeft: 14, justifyContent: 'space-between' }}>
-                <View>
+              
+              {/* Product Info Container */}
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                {/* Top Section: Title and Delete Button */}
+                <View style={{ flexDirection: 'row', marginBottom: 8 }}>
                   <Text
-                    style={{ fontSize: 14, fontWeight: '600', color: theme.text ?? '#0f172a' }}
+                    style={{ 
+                      flex: 1,
+                      fontSize: 15, 
+                      fontWeight: '600', 
+                      color: theme.text ?? '#0f172a',
+                      lineHeight: 20,
+                      marginRight: 8,
+                    }}
                     numberOfLines={2}
                   >
                     {productTitle}
                   </Text>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.primary ?? '#f97316', marginTop: 4 }}>
-                    {formatPrice(itemPrice)}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  {/* Quantity controls */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: theme.backgroundSecondary ?? '#f8fafc',
-                      borderRadius: 10,
-                      gap: 0,
+                  <Pressable 
+                    onPress={() => handleRemove(productId)} 
+                    style={{ 
+                      padding: 4,
+                      alignSelf: 'flex-start',
                     }}
                   >
-                    <Pressable
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        updateCartQuantity(productId, itemQuantity - 1);
-                      }}
-                      style={{ padding: 8 }}
-                    >
-                      <Ionicons name="remove" size={18} color={theme.text ?? '#0f172a'} />
-                    </Pressable>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontWeight: '700',
-                        color: theme.text ?? '#0f172a',
-                        minWidth: 28,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {itemQuantity}
-                    </Text>
-                    <Pressable
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        updateCartQuantity(productId, itemQuantity + 1);
-                      }}
-                      style={{ padding: 8 }}
-                    >
-                      <Ionicons name="add" size={18} color={theme.primary ?? '#f97316'} />
-                    </Pressable>
-                  </View>
-                  <Pressable onPress={() => handleRemove(productId)} style={{ padding: 6 }}>
-                    <Ionicons name="trash-outline" size={18} color={theme.error ?? '#ef4444'} />
+                    <Ionicons name="trash-outline" size={20} color={theme.error ?? '#ef4444'} />
+                  </Pressable>
+                </View>
+
+                {/* Price */}
+                <Text style={{ 
+                  fontSize: 17, 
+                  fontWeight: '700', 
+                  color: theme.primary ?? '#f97316', 
+                  marginBottom: 12,
+                }}>
+                  {formatPrice(itemPrice)}
+                </Text>
+
+                {/* Bottom Section: Quantity Controls */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.backgroundSecondary ?? '#f8fafc',
+                    borderRadius: 10,
+                    alignSelf: 'flex-start',
+                    borderWidth: 1,
+                    borderColor: theme.border ?? '#e2e8f0',
+                  }}
+                >
+                  <Pressable
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      updateCartQuantity(productId, itemQuantity - 1);
+                    }}
+                    style={{ 
+                      padding: 10,
+                      paddingHorizontal: 12,
+                    }}
+                  >
+                    <Ionicons name="remove" size={18} color={theme.text ?? '#0f172a'} />
+                  </Pressable>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: '700',
+                      color: theme.text ?? '#0f172a',
+                      minWidth: 32,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {itemQuantity}
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      updateCartQuantity(productId, itemQuantity + 1);
+                    }}
+                    style={{ 
+                      padding: 10,
+                      paddingHorizontal: 12,
+                    }}
+                  >
+                    <Ionicons name="add" size={18} color={theme.primary ?? '#f97316'} />
                   </Pressable>
                 </View>
               </View>
